@@ -10,6 +10,7 @@ pipeline {
 
     stage('Build & Push Image') {
       steps {
+        // Expose DOCKERHUB_USER / DOCKERHUB_PASS to build.sh (env), but don't interpolate secrets in the command
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub',
           usernameVariable: 'DOCKERHUB_USER',
@@ -20,14 +21,15 @@ pipeline {
             def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
 
             sh 'chmod +x scripts/build.sh'
-            sh "bash ./scripts/build.sh ${target}"   // build.sh reads DOCKERHUB_* from env
+            sh "bash ./scripts/build.sh ${target}"
           }
         }
       }
     }
 
     stage('Deploy on EC2') {
-      when { anyOf { branch 'dev'; branch 'main'; branch 'master' } } // change to only main/master if you want
+      // deploy on both branches; change to only main/master if you prefer
+      when { anyOf { branch 'dev'; branch 'main'; branch 'master' } }
       steps {
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub',
@@ -37,7 +39,6 @@ pipeline {
           script {
             def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
             def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
-
             sh 'chmod +x scripts/deploy.sh'
             sh "bash ./scripts/deploy.sh ${target}"
           }
@@ -51,4 +52,3 @@ pipeline {
     failure { echo 'Build failed.' }
   }
 }
-
