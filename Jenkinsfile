@@ -10,34 +10,37 @@ pipeline {
 
     stage('Build & Push Image') {
       steps {
-        // Exposes DOCKERHUB_USER / DOCKERHUB_PASS env vars for build.sh
-        withCredentials([usernamePassword(credentialsId: 'dockerhub',
-                                          usernameVariable: 'DOCKERHUB_USER',
-                                          passwordVariable:  'DOCKERHUB_PASS')]) {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub',
+          usernameVariable: 'DOCKERHUB_USER',
+          passwordVariable:  'DOCKERHUB_PASS'
+        )]) {
           script {
-            // Determine target based on branch
-            def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD',
-                                               returnStdout: true).trim()
+            def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
             def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
 
             sh 'chmod +x scripts/build.sh'
-            // build.sh reads DOCKERHUB_* from env (no secrets in command line)
-            sh "bash ./scripts/build.sh ${target}"
+            sh "bash ./scripts/build.sh ${target}"   // build.sh reads DOCKERHUB_* from env
           }
         }
       }
     }
 
     stage('Deploy on EC2') {
-      when { anyOf { branch 'dev'; branch 'main'; branch 'master' } }
+      when { anyOf { branch 'dev'; branch 'main'; branch 'master' } } // change to only main/master if you want
       steps {
-        script {
-          def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD',
-                                             returnStdout: true).trim()
-          def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub',
+          usernameVariable: 'DOCKERHUB_USER',
+          passwordVariable:  'DOCKERHUB_PASS'
+        )]) {
+          script {
+            def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+            def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
 
-          sh 'chmod +x scripts/deploy.sh'
-          sh "bash ./scripts/deploy.sh ${target}"
+            sh 'chmod +x scripts/deploy.sh'
+            sh "bash ./scripts/deploy.sh ${target}"
+          }
         }
       }
     }

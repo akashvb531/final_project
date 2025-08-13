@@ -1,6 +1,6 @@
 set -euo pipefail
-TARGET="${1:-dev}"                     # dev or prod
-HUB_USER="${DOCKERHUB_USER:-akashvb}"  # allow CI to override
+TARGET="${1:-dev}"
+HUB_USER="${DOCKERHUB_USER:-akashvb}"
 APP_NAME="devops-build"
 
 if [[ "$TARGET" == "prod" ]]; then
@@ -10,7 +10,7 @@ else
 fi
 export IMAGE
 
-# If CI provides creds, login before pulling (needed for private prod repo)
+# Login for private repos when running in CI
 if [[ -n "${DOCKERHUB_PASS:-}" ]]; then
   echo "$DOCKERHUB_PASS" | docker login -u "${DOCKERHUB_USER:-$HUB_USER}" --password-stdin
 fi
