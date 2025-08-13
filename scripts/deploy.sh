@@ -1,25 +1,21 @@
-#!/usr/bin/env bash
 set -euo pipefail
-
-# Usage: ./scripts/deploy.sh dev|prod
-TARGET="${1:-dev}"
-HUB_USER="akashvb"
+TARGET="${1:-dev}"                     # dev or prod
+HUB_USER="${DOCKERHUB_USER:-akashvb}"  # allow CI to override
 APP_NAME="devops-build"
 
 if [[ "$TARGET" == "prod" ]]; then
-  REPO="$HUB_USER/$APP_NAME-prod"
+  IMAGE="$HUB_USER/$APP_NAME-prod:latest"
 else
-  REPO="$HUB_USER/$APP_NAME-dev"
+  IMAGE="$HUB_USER/$APP_NAME-dev:latest"
+fi
+export IMAGE
+
+# If CI provides creds, login before pulling (needed for private prod repo)
+if [[ -n "${DOCKERHUB_PASS:-}" ]]; then
+  echo "$DOCKERHUB_PASS" | docker login -u "${DOCKERHUB_USER:-$HUB_USER}" --password-stdin
 fi
 
-# Point compose at the correct image
-sed -i "s|^\\s*image:.*|    image: $REPO:latest|" docker-compose.yml
-
-echo "Pulling latest image…"
-docker compose -p devops-build pull
-
 echo "Starting with docker compose…"
+docker compose -p devops-build pull
 docker compose -p devops-build up -d
-
-docker compose ps
-
+docker compose -p devops-build ps
