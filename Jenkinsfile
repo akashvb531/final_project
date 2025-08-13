@@ -1,16 +1,13 @@
 pipeline {
   agent any
   options { timestamps() }
-  triggers { githubPush() }   // builds on GitHub push (webhook)
+  triggers { githubPush() }
 
   stages {
-    stage('Checkout') {
-      steps { checkout scm }
-    }
+    stage('Checkout') { steps { checkout scm } }
 
     stage('Build & Push Image') {
       steps {
-        // Expose DOCKERHUB_USER / DOCKERHUB_PASS to build.sh (env), but don't interpolate secrets in the command
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub',
           usernameVariable: 'DOCKERHUB_USER',
@@ -19,7 +16,6 @@ pipeline {
           script {
             def branch = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
             def target = (branch == 'main' || branch == 'master') ? 'prod' : 'dev'
-
             sh 'chmod +x scripts/build.sh'
             sh "bash ./scripts/build.sh ${target}"
           }
@@ -28,7 +24,6 @@ pipeline {
     }
 
     stage('Deploy on EC2') {
-      // deploy on both branches; change to only main/master if you prefer
       when { anyOf { branch 'dev'; branch 'main'; branch 'master' } }
       steps {
         withCredentials([usernamePassword(
