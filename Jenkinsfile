@@ -1,8 +1,7 @@
-cat > Jenkinsfile <<'EOF'
 pipeline {
   agent any
   options { timestamps() }
-  triggers { githubPush() } // works fine; webhook will fire scans
+  triggers { githubPush() } // webhook triggers
 
   stages {
     stage('Checkout') { steps { checkout scm } }
@@ -40,4 +39,4 @@ pipeline {
     failure { echo 'Build failed.' }
   }
 }
-EOF
+
