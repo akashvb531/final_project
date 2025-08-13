@@ -16,10 +16,10 @@ fi
 sed -i "s|^\\s*image:.*|    image: $REPO:latest|" docker-compose.yml
 
 echo "Pulling latest image…"
-docker compose pull
+docker compose -p devops-build pull
 
 echo "Starting with docker compose…"
-docker compose up -d
+docker compose -p devops-build up -d
 
 docker compose ps
 
